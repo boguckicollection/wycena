@@ -44,15 +44,24 @@ def find_matching_card(name, number=None):
     # Filtrowanie tylko singli
     valid_cards = [c for c in products if is_valid_card(c)]
 
-    # Jeśli podano numer – dopasuj dokładnie
+    # Jeśli podano numer – dopasuj dokładnie po części przed '/'
     if number:
-        number = number.strip().upper()
+        # Użytkownik może podać numer w formie np. "206/198". Bierzemy tylko
+        # pierwszą część i porównujemy w postaci uppercase, ignorując białe znaki.
+        user_num = number.split("/")[0].strip().upper()
+
         for card in valid_cards:
-            card_number = str(card.get("card_number", "")).strip().upper()
+            card_num = (
+                str(card.get("card_number", "")).split("/")[0].strip().upper()
+            )
             tcgid = str(card.get("tcgid", "")).strip().upper()
 
-            # Dopasowanie: numer dokładny lub zawiera numer w tcgid
-            if number == card_number or number in tcgid:
+            # Najpierw próba dokładnego dopasowania po numerze karty
+            if user_num == card_num:
+                return card, []
+
+            # Jeśli nie – dopuszczamy częściowe dopasowanie po tcgid
+            if user_num in tcgid:
                 return card, []
 
     # Jeśli nie znaleziono dokładnego dopasowania – zwróć listę do wyboru
