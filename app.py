@@ -26,8 +26,15 @@ def is_valid_card(card):
 
 
 def find_matching_card(name, number=None):
-    url = f"https://{API_HOST}/products?productType=singles&name={name}"
-    response = requests.get(url, headers=HEADERS)
+    # Build query parameters instead of formatting the URL string manually.
+    search_name = f"{name} {number}" if number else name
+    params = {
+        "productType": "singles",
+        "name": search_name,
+    }
+    response = requests.get(
+        f"https://{API_HOST}/products", headers=HEADERS, params=params
+    )
     if response.status_code != 200:
         raise Exception("Błąd pobierania danych z API.")
 
