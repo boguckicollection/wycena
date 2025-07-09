@@ -97,12 +97,17 @@ def display_card(card):
     # Obrazek
     image_url = card.get("image")
     if image_url:
-        image_data = requests.get(image_url).content
-        img = Image.open(BytesIO(image_data))
-        img = img.resize((250, 350))
-        img_tk = ImageTk.PhotoImage(img)
-        label_image.config(image=img_tk)
-        label_image.image = img_tk
+        try:
+            resp = requests.get(image_url)
+            resp.raise_for_status()
+            img = Image.open(BytesIO(resp.content))
+            img = img.resize((250, 350))
+            img_tk = ImageTk.PhotoImage(img)
+            label_image.config(image=img_tk)
+            label_image.image = img_tk
+        except Exception:
+            label_image.config(image=None)
+            label_image.image = None
     else:
         label_image.config(image=None)
         label_image.image = None
