@@ -5,6 +5,11 @@ from PIL import Image, ImageTk
 from io import BytesIO
 import os
 from dotenv import load_dotenv
+import logging
+
+logging.basicConfig(level=logging.DEBUG,
+                    format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -32,14 +37,18 @@ def find_matching_card(name, number=None):
         "productType": "singles",
         "name": search_name,
     }
+    logger.debug("Requesting card search with params: %s", params)
     response = requests.get(
         f"https://{API_HOST}/products", headers=HEADERS, params=params
     )
+    logger.debug("API response status: %s", response.status_code)
+    logger.debug("Requested URL: %s", response.url)
     if response.status_code != 200:
         raise Exception("Błąd pobierania danych z API.")
 
     data = response.json()
     products = data.get("data", [])
+    logger.debug("API returned %d products", len(products))
 
     # Filtrowanie tylko singli
     valid_cards = [c for c in products if is_valid_card(c)]
@@ -72,6 +81,7 @@ def find_matching_card(name, number=None):
 def search_card():
     name = entry_name.get().strip()
     number = entry_number.get().strip()
+    logger.debug("Searching for name='%s', number='%s'", name, number)
 
     if not name or not number:
         messagebox.showerror("Błąd", "Podaj nazwę i numer karty.")
@@ -80,18 +90,23 @@ def search_card():
     try:
         card, alternatives = find_matching_card(name, number)
         if card:
+            logger.debug("Found exact card match")
             display_card(card)
         else:
             if not alternatives:
+                logger.debug("No cards found")
                 messagebox.showerror("Nie znaleziono", "Nie znaleziono żadnych kart.")
                 return
+            logger.debug("Showing alternative selection")
             show_alternative_list(alternatives)
 
     except Exception as e:
+        logger.exception("Error while searching for card")
         messagebox.showerror("Błąd", str(e))
 
 
 def display_card(card):
+    logger.debug("Displaying card: %s (%s)", card.get('name'), card.get('card_number'))
     label_result.config(text=f"{card.get('name')} ({card.get('card_number')})")
 
     # Obrazek
@@ -106,6 +121,7 @@ def display_card(card):
             label_image.config(image=img_tk)
             label_image.image = img_tk
         except Exception:
+            logger.exception("Failed to load card image")
             label_image.config(image=None)
             label_image.image = None
     else:
@@ -125,6 +141,7 @@ def display_card(card):
 def show_alternative_list(cards):
     window = tk.Toplevel(root)
     window.title("Wybierz kartę z listy")
+    logger.debug("Showing %d alternative cards", len(cards))
 
     tk.Label(window, text="Nie znaleziono podanego numeru.\nWybierz kartę z listy:").pack(pady=5)
 
@@ -139,6 +156,7 @@ def show_alternative_list(cards):
         if not index:
             return
         selected_card = cards[index[0]]
+        logger.debug("Selected alternative card: %s (%s)", selected_card.get('name'), selected_card.get('card_number'))
         display_card(selected_card)
         window.destroy()
 
