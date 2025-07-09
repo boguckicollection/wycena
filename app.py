@@ -31,23 +31,28 @@ def is_valid_card(card):
 
 
 def find_matching_card(name, number=None):
-    # Build query parameters instead of formatting the URL string manually.
-    search_name = f"{name} {number}" if number else name
-    params = {
-        "productType": "singles",
-        "name": search_name,
-    }
+    """Search for a card using the API and return the best match."""
+    # The new API endpoint expects a single ``search`` parameter.
+    search_query = f"{name} {number}" if number else name
+    params = {"search": search_query}
+
     logger.debug("Requesting card search with params: %s", params)
     response = requests.get(
-        f"https://{API_HOST}/products", headers=HEADERS, params=params
+        f"https://{API_HOST}/cards/search", headers=HEADERS, params=params
     )
+
     logger.debug("API response status: %s", response.status_code)
     logger.debug("Requested URL: %s", response.url)
     if response.status_code != 200:
         raise Exception("Błąd pobierania danych z API.")
 
     data = response.json()
-    products = data.get("data", [])
+    # The new endpoint may return cards either in ``data`` or ``cards``
+    # property.  Handle both cases gracefully.
+    products = data.get("data") or data.get("cards") or []
+    if isinstance(products, dict):
+        products = products.get("cards") or products.get("data") or []
+
     logger.debug("API returned %d products", len(products))
 
     # Filtrowanie tylko singli
